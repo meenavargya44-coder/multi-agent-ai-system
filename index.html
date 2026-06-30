@@ -242,7 +242,7 @@ textarea::placeholder{color:var(--text3)}
     <input type="password" class="api-input" id="openrouter-key" placeholder="sk-or-v1-..." />
     <p class="api-note">Free key: <a href="https://openrouter.ai" target="_blank">openrouter.ai</a> (free models with :free suffix)</p>
   </div>
-  <div class="active-indicator" id="active-indicator">✓ Active: Groq — agar rate limit lage, upar se kisi aur provider pe switch karo</div>
+  <div class="active-indicator" id="active-indicator">✓ Active: Groq — Tip: teeno keys daal do, system khud auto-switch karega jab koi limit lage</div>
 </div>
 
 <div class="container">
@@ -466,23 +466,35 @@ function setProvider(p){
   document.getElementById('gemini-key-section').style.display = p==='gemini' ? 'block':'none';
   document.getElementById('openrouter-key-section').style.display = p==='openrouter' ? 'block':'none';
   const labels = { groq:'Groq', gemini:'Gemini', openrouter:'OpenRouter' };
-  document.getElementById('active-indicator').textContent = `✓ Active: ${labels[p]} — agar rate limit lage, upar se kisi aur provider pe switch karo`;
+  document.getElementById('active-indicator').textContent = `✓ Active: ${labels[p]} — Tip: teeno keys daal do, system khud auto-switch karega jab koi limit lage`;
 }
 
 function getKey(){
-  if(currentProvider==='groq'){
-    const k = document.getElementById('groq-key').value.trim();
-    if(!k){ alert('Pehle Groq API key daalo!'); return null; }
-    return k;
-  } else if(currentProvider==='gemini'){
-    const k = document.getElementById('gemini-key').value.trim();
-    if(!k){ alert('Pehle Gemini API key daalo!'); return null; }
-    return k;
-  } else {
-    const k = document.getElementById('openrouter-key').value.trim();
-    if(!k){ alert('Pehle OpenRouter API key daalo!'); return null; }
-    return k;
+  // Returns the currently selected provider's key (used for the initial UI check before running a pipeline)
+  if(currentProvider==='groq') return document.getElementById('groq-key').value.trim();
+  if(currentProvider==='gemini') return document.getElementById('gemini-key').value.trim();
+  return document.getElementById('openrouter-key').value.trim();
+}
+
+function getAllKeys(){
+  return {
+    groq: document.getElementById('groq-key').value.trim(),
+    gemini: document.getElementById('gemini-key').value.trim(),
+    openrouter: document.getElementById('openrouter-key').value.trim()
+  };
+}
+
+function hasAnyKey(){
+  const keys = getAllKeys();
+  return !!(keys.groq || keys.gemini || keys.openrouter);
+}
+
+function requireKey(){
+  if(!hasAnyKey()){
+    alert('Pehle kam se kam ek API key daalo (Groq, Gemini, ya OpenRouter)!');
+    return false;
   }
+  return true;
 }
 
 function switchTab(name){
@@ -796,11 +808,32 @@ async function callOpenRouter(apiKey, systemPrompt, userMessage){
 }
 
 async function callAI(systemPrompt, userMessage){
-  const key = getKey();
-  if(!key) throw new Error('API key missing');
-  if(currentProvider==='groq') return await callGroq(key, systemPrompt, userMessage);
-  if(currentProvider==='gemini') return await callGemini(key, systemPrompt, userMessage);
-  return await callOpenRouter(key, systemPrompt, userMessage);
+  const keys = getAllKeys();
+  // Try current provider first, then fall back through the others that have a key set.
+  const order = [currentProvider, 'groq', 'gemini', 'openrouter'].filter((p,i,arr) => arr.indexOf(p)===i);
+  const errors = [];
+  for(const provider of order){
+    const key = keys[provider];
+    if(!key) continue; // skip providers with no key entered
+    try{
+      let result;
+      if(provider==='groq') result = await callGroq(key, systemPrompt, userMessage);
+      else if(provider==='gemini') result = await callGemini(key, systemPrompt, userMessage);
+      else result = await callOpenRouter(key, systemPrompt, userMessage);
+      // success — if we had to switch providers, reflect that in the UI so the user knows
+      if(provider !== currentProvider){
+        setProvider(provider);
+        const indicator = document.getElementById('active-indicator');
+        if(indicator) indicator.textContent = `↻ Auto-switched to ${provider} (pehla provider limit/error de raha tha)`;
+      }
+      return result;
+    }catch(e){
+      errors.push(`${provider}: ${e.message}`);
+      continue; // try next provider
+    }
+  }
+  if(!errors.length) throw new Error('Koi API key nahi mili — pehle Groq, Gemini ya OpenRouter mein se ek key daalo.');
+  throw new Error('Sab providers fail ho gaye → ' + errors.join(' | '));
 }
 
 // Helper: builds a regeneration-aware user message.
@@ -815,7 +848,7 @@ function buildRegenMessage(originalUserMessage, previousOutput, notes){
 
 // ── CONTENT PIPELINE ──
 async function runContent(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('content-input').value.trim();
   if(!input){ alert('Topic likhoo pehle!'); return; }
   const btn = document.getElementById('content-run');
@@ -862,7 +895,7 @@ async function runContent(){
 
 // ── VIDEO SCRIPT PIPELINE ──
 async function runVideo(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('video-input').value.trim();
   if(!input){ alert('Video idea likhoo!'); return; }
   const btn = document.getElementById('video-run');
@@ -913,7 +946,7 @@ async function runVideo(){
 
 // ── SUPPORT PIPELINE ──
 async function runSupport(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('support-input').value.trim();
   if(!input){ alert('Customer message likhoo!'); return; }
   const btn = document.getElementById('support-run');
@@ -959,7 +992,7 @@ async function runSupport(){
 
 // ── CODE PIPELINE ──
 async function runCode(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('code-input').value.trim();
   if(!input){ alert('Feature request likhoo!'); return; }
   const btn = document.getElementById('code-run');
@@ -1005,7 +1038,7 @@ async function runCode(){
 }
 // ── SOCIAL MEDIA PIPELINE ──
 async function runSocial(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('social-input').value.trim();
   if(!input){ alert('Post topic likhoo!'); return; }
   const btn = document.getElementById('social-run');
@@ -1051,7 +1084,7 @@ async function runSocial(){
 
 // ── EMAIL CAMPAIGN PIPELINE ──
 async function runEmail(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('email-input').value.trim();
   if(!input){ alert('Campaign goal likhoo!'); return; }
   const btn = document.getElementById('email-run');
@@ -1096,7 +1129,7 @@ async function runEmail(){
 
 // ── RESEARCH PIPELINE ──
 async function runResearch(){
-  if(!getKey()) return;
+  if(!requireKey()) return;
   const input = document.getElementById('research-input').value.trim();
   if(!input){ alert('Research question likhoo!'); return; }
   const btn = document.getElementById('research-run');
