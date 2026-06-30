@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Multi-Agent AI System — Groq + Gemini + OpenRouter</title>
+<title>Multi-Agent AI System — 7 Pipelines</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -123,7 +123,7 @@ textarea::placeholder{color:var(--text3)}
 
   .container{gap:10px}
   .tabs{gap:5px}
-  .tab{flex:1 1 calc(50% - 5px);padding:11px 8px;font-size:12.5px;text-align:center}
+  .tab{flex:1 1 calc(33.333% - 5px);padding:10px 5px;font-size:11.5px;text-align:center}
 
   .card{padding:14px;border-radius:12px}
   .card-title{font-size:14px;margin-bottom:12px}
@@ -201,6 +201,9 @@ textarea::placeholder{color:var(--text3)}
     <button class="tab" onclick="switchTab('video')">🎬 Video Script</button>
     <button class="tab" onclick="switchTab('support')">💬 Support</button>
     <button class="tab" onclick="switchTab('code')">💻 Code</button>
+    <button class="tab" onclick="switchTab('social')">📱 Social Media</button>
+    <button class="tab" onclick="switchTab('email')">📧 Email Campaign</button>
+    <button class="tab" onclick="switchTab('research')">📊 Research</button>
   </div>
 
   <!-- CONTENT PIPELINE -->
@@ -300,6 +303,78 @@ textarea::placeholder{color:var(--text3)}
     </div>
     <div class="outputs" id="code-outputs"></div>
   </div>
+
+  <!-- SOCIAL MEDIA PIPELINE -->
+  <div class="pipeline" id="tab-social">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">📱 Social Media Posts</div>
+      <div class="flow">
+        <div class="agent idle" id="sm-strategist"><div class="dot"></div>Strategist</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sm-writer"><div class="dot"></div>Caption Writer</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sm-hashtag"><div class="dot"></div>Hashtag Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sm-visual"><div class="dot"></div>Visual Agent</div>
+      </div>
+      <div class="input-label">Post topic / product</div>
+      <textarea id="social-input" placeholder="e.g. Launch post for our new handmade candle collection, target audience young women 20-30"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="social-run" onclick="runSocial()">▶ Run pipeline</button>
+        <span class="status" id="social-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="social-outputs"></div>
+  </div>
+
+  <!-- EMAIL CAMPAIGN PIPELINE -->
+  <div class="pipeline" id="tab-email">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">📧 Email Marketing Campaign</div>
+      <div class="flow">
+        <div class="agent idle" id="em-strategist"><div class="dot"></div>Campaign Strategist</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="em-subject"><div class="dot"></div>Subject Line Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="em-writer"><div class="dot"></div>Email Writer</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="em-cta"><div class="dot"></div>CTA Optimizer</div>
+      </div>
+      <div class="input-label">Campaign goal</div>
+      <textarea id="email-input" placeholder="e.g. Welcome email for new subscribers to our skincare brand, offer 10% off first order"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="email-run" onclick="runEmail()">▶ Run pipeline</button>
+        <span class="status" id="email-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="email-outputs"></div>
+  </div>
+
+  <!-- RESEARCH PIPELINE -->
+  <div class="pipeline" id="tab-research">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">📊 Research & Data Summary</div>
+      <div class="flow">
+        <div class="agent idle" id="rs-decomposer"><div class="dot"></div>Decomposer</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="rs-researcher"><div class="dot"></div>Researcher</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="rs-analyst"><div class="dot"></div>Analyst</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="rs-synthesizer"><div class="dot"></div>Synthesizer</div>
+      </div>
+      <div class="input-label">Research question</div>
+      <textarea id="research-input" placeholder="e.g. What are the main trends in sustainable packaging for small businesses?"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="research-run" onclick="runResearch()">▶ Run pipeline</button>
+        <span class="status" id="research-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="research-outputs"></div>
+  </div>
 </div>
 
 <div class="footer">
@@ -343,7 +418,7 @@ function getKey(){
 }
 
 function switchTab(name){
-  const names = ['content','video','support','code'];
+  const names = ['content','video','support','code','social','email','research'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
   document.querySelectorAll('.pipeline').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -727,6 +802,138 @@ async function runCode(){
   }catch(e){
     setStatus('code-status','❌ '+e.message);
     addOutput('code-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+// ── SOCIAL MEDIA PIPELINE ──
+async function runSocial(){
+  if(!getKey()) return;
+  const input = document.getElementById('social-input').value.trim();
+  if(!input){ alert('Post topic likhoo!'); return; }
+  const btn = document.getElementById('social-run');
+  btn.disabled=true; clearOutputs('social-outputs');
+  resetAgents('sm-strategist','sm-writer','sm-hashtag','sm-visual');
+  try{
+    const stratSys = 'You are a social media strategist. Given a topic, define: PLATFORM recommendation (Instagram/LinkedIn/Twitter), POST TYPE (carousel/single image/reel idea), TONE, HOOK angle (the opening line idea). Be concise.';
+    setAgent('sm-strategist','running'); setStatus('social-status','Strategy bana raha hai…');
+    const strategy = await callAI(stratSys, 'Topic: '+input);
+    setAgent('sm-strategist','done');
+    addOutput('social-outputs','🎯 Strategist — Post Strategy','blue', strategy,
+      async (notes) => callAI(stratSys, buildRegenMessage('Topic: '+input, strategy, notes)));
+
+    const writerSys = 'You are a social media caption writer. Write an engaging caption (100-150 words) with a strong hook in the first line, value in the middle, and a clear call-to-action at the end.';
+    setAgent('sm-writer','running'); setStatus('social-status','Caption likh raha hai…');
+    const caption = await callAI(writerSys, 'Strategy:\n'+strategy+'\n\nTopic: '+input);
+    setAgent('sm-writer','done');
+    addOutput('social-outputs','✍️ Caption Writer — Caption','purple', caption,
+      async (notes) => callAI(writerSys, buildRegenMessage('Strategy:\n'+strategy, caption, notes)));
+
+    const hashtagSys = 'You are a hashtag research agent. Generate 15-20 relevant hashtags mixing high-reach, medium-reach, and niche tags. Group them by reach level.';
+    setAgent('sm-hashtag','running'); setStatus('social-status','Hashtags dhund raha hai…');
+    const hashtags = await callAI(hashtagSys, 'Topic: '+input+'\n\nCaption:\n'+caption);
+    setAgent('sm-hashtag','done');
+    addOutput('social-outputs','#️⃣ Hashtag Agent — Hashtags','amber', hashtags,
+      async (notes) => callAI(hashtagSys, buildRegenMessage('Topic: '+input, hashtags, notes)));
+
+    const visualSys = 'You are a visual content agent. Create a detailed image generation prompt describing the ideal visual for this post: composition, colors, mood, style. One single detailed prompt.';
+    setAgent('sm-visual','running'); setStatus('social-status','Visual bana raha hai…');
+    const visualPrompt = await callAI(visualSys, 'Topic: '+input+'\n\nStrategy:\n'+strategy);
+    setAgent('sm-visual','done');
+    addOutput('social-outputs','🎨 Visual Agent — Image Prompt','green', visualPrompt,
+      async (notes) => callAI(visualSys, buildRegenMessage('Topic: '+input, visualPrompt, notes)));
+    addSceneImages('social-outputs', 'SCENE 1 PROMPT: '+visualPrompt);
+    setStatus('social-status','✅ Post ready! Caption, hashtags aur visual sab tayyar');
+  }catch(e){
+    setStatus('social-status','❌ '+e.message);
+    addOutput('social-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+
+// ── EMAIL CAMPAIGN PIPELINE ──
+async function runEmail(){
+  if(!getKey()) return;
+  const input = document.getElementById('email-input').value.trim();
+  if(!input){ alert('Campaign goal likhoo!'); return; }
+  const btn = document.getElementById('email-run');
+  btn.disabled=true; clearOutputs('email-outputs');
+  resetAgents('em-strategist','em-subject','em-writer','em-cta');
+  try{
+    const stratSys = 'You are an email campaign strategist. Define: CAMPAIGN GOAL, TARGET AUDIENCE, EMAIL TYPE (welcome/promotional/newsletter/abandoned cart), KEY MESSAGE, TONE. Be concise.';
+    setAgent('em-strategist','running'); setStatus('email-status','Strategy bana raha hai…');
+    const strategy = await callAI(stratSys, 'Campaign goal: '+input);
+    setAgent('em-strategist','done');
+    addOutput('email-outputs','🎯 Strategist — Campaign Plan','blue', strategy,
+      async (notes) => callAI(stratSys, buildRegenMessage('Campaign goal: '+input, strategy, notes)));
+
+    const subjectSys = 'You are a subject line specialist. Write 5 different subject line options optimized for high open rates. Mix curiosity, urgency, and benefit-driven approaches. Number them 1-5.';
+    setAgent('em-subject','running'); setStatus('email-status','Subject lines bana raha hai…');
+    const subjects = await callAI(subjectSys, 'Campaign:\n'+strategy);
+    setAgent('em-subject','done');
+    addOutput('email-outputs','📌 Subject Line Agent — 5 Options','purple', subjects,
+      async (notes) => callAI(subjectSys, buildRegenMessage('Campaign:\n'+strategy, subjects, notes)));
+
+    const writerSys = 'You are an email copywriter. Write a complete marketing email body: greeting, engaging opening, value/benefit section, and closing. Keep it concise and scannable with short paragraphs.';
+    setAgent('em-writer','running'); setStatus('email-status','Email likh raha hai…');
+    const emailBody = await callAI(writerSys, 'Campaign:\n'+strategy+'\n\nGoal: '+input);
+    setAgent('em-writer','done');
+    addOutput('email-outputs','✍️ Email Writer — Email Body','amber', emailBody,
+      async (notes) => callAI(writerSys, buildRegenMessage('Campaign:\n'+strategy, emailBody, notes)));
+
+    const ctaSys = 'You are a CTA optimization agent. Suggest 3 call-to-action button text options optimized for clicks, plus where in the email each works best. Keep button text under 5 words each.';
+    setAgent('em-cta','running'); setStatus('email-status','CTA optimize kar raha hai…');
+    const cta = await callAI(ctaSys, 'Email:\n'+emailBody);
+    setAgent('em-cta','done');
+    addOutput('email-outputs','🔘 CTA Optimizer — Button Options','green', cta,
+      async (notes) => callAI(ctaSys, buildRegenMessage('Email:\n'+emailBody, cta, notes)));
+    setStatus('email-status','✅ Campaign ready!');
+  }catch(e){
+    setStatus('email-status','❌ '+e.message);
+    addOutput('email-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+
+// ── RESEARCH PIPELINE ──
+async function runResearch(){
+  if(!getKey()) return;
+  const input = document.getElementById('research-input').value.trim();
+  if(!input){ alert('Research question likhoo!'); return; }
+  const btn = document.getElementById('research-run');
+  btn.disabled=true; clearOutputs('research-outputs');
+  resetAgents('rs-decomposer','rs-researcher','rs-analyst','rs-synthesizer');
+  try{
+    const decompSys = 'You are a research decomposition agent. Break the question into 3-5 specific sub-questions. Also identify key concepts and what data/sources would be needed.';
+    setAgent('rs-decomposer','running'); setStatus('research-status','Decomposing…');
+    const decomposed = await callAI(decompSys, 'Research question: '+input);
+    setAgent('rs-decomposer','done');
+    addOutput('research-outputs','🔎 Decomposer — Sub-questions','blue', decomposed,
+      async (notes) => callAI(decompSys, buildRegenMessage('Research question: '+input, decomposed, notes)));
+
+    const researchSys = 'You are a research agent. For each sub-question, give a factual, well-reasoned answer (2-3 sentences each) based on general knowledge. Flag any areas of uncertainty.';
+    setAgent('rs-researcher','running'); setStatus('research-status','Researching…');
+    const research = await callAI(researchSys, 'Sub-questions:\n'+decomposed);
+    setAgent('rs-researcher','done');
+    addOutput('research-outputs','📚 Researcher — Findings','purple', research,
+      async (notes) => callAI(researchSys, buildRegenMessage('Sub-questions:\n'+decomposed, research, notes)));
+
+    const analystSys = 'You are a data analysis agent. Identify: KEY PATTERNS (bullet list), CONTRADICTIONS or GAPS, CONFIDENCE LEVEL for each major finding.';
+    setAgent('rs-analyst','running'); setStatus('research-status','Analysing…');
+    const analysis = await callAI(analystSys, 'Findings:\n'+research);
+    setAgent('rs-analyst','done');
+    addOutput('research-outputs','📊 Analyst — Patterns & Gaps','amber', analysis,
+      async (notes) => callAI(analystSys, buildRegenMessage('Findings:\n'+research, analysis, notes)));
+
+    const synthSys = 'You are a synthesis agent. Write a clear research summary (250-300 words) that directly answers the original question. End with 2-3 actionable recommendations.';
+    setAgent('rs-synthesizer','running'); setStatus('research-status','Synthesizing…');
+    const synthesis = await callAI(synthSys, 'Question: '+input+'\n\nFindings:\n'+research+'\n\nAnalysis:\n'+analysis);
+    setAgent('rs-synthesizer','done');
+    addOutput('research-outputs','📝 Synthesizer — Final Report','green', synthesis,
+      async (notes) => callAI(synthSys, buildRegenMessage('Question: '+input, synthesis, notes)));
+    setStatus('research-status','✅ Research complete');
+  }catch(e){
+    setStatus('research-status','❌ '+e.message);
+    addOutput('research-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
   }
   btn.disabled=false;
 }
