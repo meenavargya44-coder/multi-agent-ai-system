@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Multi-Agent AI System — Groq + Gemini + OpenRouter</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -101,6 +104,63 @@ textarea::placeholder{color:var(--text3)}
 
 .footer{text-align:center;margin-top:28px;font-size:12px;color:var(--text3)}
 .footer a{color:var(--accent);text-decoration:none}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 640px){
+  body{padding:14px 10px}
+
+  .header{margin-bottom:20px}
+  .header h1{font-size:21px}
+  .header p{font-size:12.5px}
+  .free-badge{font-size:11px;padding:3px 10px}
+
+  .api-section{padding:12px;border-radius:12px}
+  .provider-tabs{gap:6px;margin-bottom:12px}
+  .provider-tab{padding:10px 6px;font-size:12px}
+  .api-input{padding:11px 12px;font-size:16px}/* 16px prevents iOS auto-zoom on focus */
+  .api-note{font-size:10.5px;line-height:1.5}
+  .active-indicator{font-size:10.5px;line-height:1.5}
+
+  .container{gap:10px}
+  .tabs{gap:5px}
+  .tab{flex:1 1 calc(50% - 5px);padding:11px 8px;font-size:12.5px;text-align:center}
+
+  .card{padding:14px;border-radius:12px}
+  .card-title{font-size:14px;margin-bottom:12px}
+
+  .flow{gap:5px;margin-bottom:12px}
+  .agent{padding:7px 10px;font-size:11.5px;flex:1 1 auto}
+  .arrow{display:none}/* arrows clutter narrow screens; agents wrap to new lines instead */
+
+  textarea{font-size:16px;padding:11px 12px;min-height:80px}/* 16px = no iOS zoom */
+
+  .btn-row{gap:8px}
+  .btn{padding:12px 18px;font-size:14px;width:100%}/* full-width tap target */
+  .status{font-size:11.5px;width:100%}
+
+  .output-header{padding:9px 11px;font-size:10.5px}
+  .output-body{padding:11px;font-size:13px;line-height:1.65;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  .regen-bar{padding:10px;gap:8px;flex-direction:column;align-items:stretch}
+  .like-row{justify-content:center}
+  .icon-btn{padding:9px 16px;font-size:15px;flex:1}
+  .regen-notes{font-size:16px;padding:10px 12px;width:100%}/* 16px = no iOS zoom */
+  .regen-bar .btn.small{width:100%;padding:11px 18px;font-size:13px}
+
+  .scene-images{grid-template-columns:repeat(2,1fr);gap:8px;padding:10px}
+  .scene-img-card img{height:110px}
+  .scene-img-label{font-size:10px;padding:5px 7px}
+
+  .kling-btn,.pika-btn{display:block;margin:6px 0 0 0 !important;text-align:center;padding:11px 14px}
+
+  .footer{font-size:11px;margin-top:20px;padding:0 10px}
+}
+
+@media (max-width: 380px){
+  .tab{font-size:11.5px;padding:10px 6px}
+  .header h1{font-size:19px}
+  .agent{font-size:11px;padding:6px 9px}
+}
 </style>
 </head>
 <body>
