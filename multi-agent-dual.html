@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent AI System — Groq + Gemini + OpenRouter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117; --surface:#1a1d27; --card:#21253a; --border:#2e3250; --border2:#3d4270;
+  --text:#e8eaf6; --text2:#9fa3c7; --text3:#5a5f80; --accent:#6c72ff; --accent2:#4e55d4;
+  --green:#22c55e; --green-bg:#0d2d1a; --amber:#f59e0b; --amber-bg:#2a1e06;
+  --red:#ef4444; --red-bg:#2a0d0d; --blue:#60a5fa; --blue-bg:#0d1e2d;
+  --purple:#a78bfa; --purple-bg:#1a1030; --radius:10px; --radius-sm:6px;
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px}
+
+.header{text-align:center;margin-bottom:28px}
+.header h1{font-size:26px;font-weight:600;background:linear-gradient(135deg,#6c72ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.header p{color:var(--text2);font-size:14px}
+.free-badge{display:inline-block;background:var(--green-bg);color:var(--green);border:1px solid #166534;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:500;margin-top:6px}
+
+.api-section{max-width:700px;margin:0 auto 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.provider-tabs{display:flex;gap:8px;margin-bottom:14px}
+.provider-tab{flex:1;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);text-align:center;transition:all .2s}
+.provider-tab.active{border-color:var(--accent);background:rgba(108,114,255,.12);color:#a5a9ff}
+.api-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.api-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+.api-input:focus{border-color:var(--accent)}
+.api-note{font-size:11px;color:var(--text3);margin-top:6px}
+.api-note a{color:var(--accent);text-decoration:none}
+.active-indicator{font-size:11px;color:var(--green);margin-top:8px;font-weight:500}
+
+.container{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;color:var(--text2);font-family:inherit;transition:all .2s}
+.tab:hover{border-color:var(--border2);color:var(--text)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+
+.pipeline{display:none;flex-direction:column;gap:12px}
+.pipeline.active{display:flex}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.card-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:14px}
+
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.agent{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;border:1px solid;transition:all .3s}
+.agent.idle{background:var(--card);border-color:var(--border);color:var(--text2)}
+.agent.running{background:rgba(108,114,255,.12);border-color:var(--accent);color:#a5a9ff}
+.agent.done{background:var(--green-bg);border-color:#166534;color:var(--green)}
+.agent.error{background:var(--red-bg);border-color:#7f1d1d;color:var(--red)}
+.agent.warning{background:var(--amber-bg);border-color:#78350f;color:var(--amber)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.dot.spin{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.arrow{color:var(--text3);font-size:13px;flex-shrink:0}
+
+.input-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:72px;outline:none;transition:border-color .2s;line-height:1.5}
+textarea:focus{border-color:var(--accent)}
+textarea::placeholder{color:var(--text3)}
+
+.btn-row{display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.btn{padding:9px 20px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .2s}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:6px 12px;font-size:12px}
+.btn.secondary{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.btn.secondary:hover{border-color:var(--border2);color:var(--text)}
+.btn.secondary:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:12px;color:var(--text3)}
+
+.outputs{display:flex;flex-direction:column;gap:8px}
+.output-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.output-header{padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.output-header.blue{background:var(--blue-bg);color:var(--blue);border-bottom:1px solid #1e3a5f}
+.output-header.green{background:var(--green-bg);color:var(--green);border-bottom:1px solid #14532d}
+.output-header.amber{background:var(--amber-bg);color:var(--amber);border-bottom:1px solid #713f12}
+.output-header.purple{background:var(--purple-bg);color:var(--purple);border-bottom:1px solid #3b2a6e}
+.output-header.red{background:var(--red-bg);color:var(--red);border-bottom:1px solid #7f1d1d}
+.output-body{padding:12px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:var(--surface)}
+.retry-note{font-size:12px;color:var(--amber);padding:8px 12px;background:var(--amber-bg);border-radius:var(--radius-sm);border:1px solid #713f12}
+
+/* Regenerate controls */
+.regen-bar{display:flex;gap:6px;padding:10px 12px;background:var(--card);border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.regen-notes{flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.regen-notes:focus{border-color:var(--accent)}
+.regen-notes::placeholder{color:var(--text3)}
+.like-row{display:flex;gap:6px}
+.icon-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .2s}
+.icon-btn:hover{border-color:var(--border2)}
+.icon-btn.liked{background:var(--green-bg);border-color:#166534;color:var(--green)}
+
+.scene-images{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px}
+.scene-img-card{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--card)}
+.scene-img-card img{width:100%;height:140px;object-fit:cover;display:block;background:var(--card)}
+.scene-img-label{font-size:11px;color:var(--text2);padding:6px 8px;font-weight:500}
+.kling-btn{display:inline-block;margin-top:8px;padding:8px 16px;background:#7c3aed;color:#fff;border-radius:var(--radius-sm);font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer}
+.pika-btn{display:inline-block;margin-top:6px;margin-left:8px;padding:8px 16px;background:#db2777;color:#fff;border-radius:var(--radius-sm);font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer}
+
+.footer{text-align:center;margin-top:28px;font-size:12px;color:var(--text3)}
+.footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 Multi-Agent AI System</h1>
+  <p>4 real AI pipelines — Groq + Gemini + OpenRouter</p>
+  <span class="free-badge">✅ 100% Free — Regenerate any output with notes</span>
+</div>
+
+<div class="api-section">
+  <div class="provider-tabs">
+    <button class="provider-tab active" id="provider-groq" onclick="setProvider('groq')">🟢 Groq</button>
+    <button class="provider-tab" id="provider-gemini" onclick="setProvider('gemini')">🔵 Gemini</button>
+    <button class="provider-tab" id="provider-openrouter" onclick="setProvider('openrouter')">🟣 OpenRouter</button>
+  </div>
+  <div id="groq-key-section">
+    <div class="api-label">Groq API Key</div>
+    <input type="password" class="api-input" id="groq-key" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxx" />
+    <p class="api-note">Free key: <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+  </div>
+  <div id="gemini-key-section" style="display:none">
+    <div class="api-label">Gemini API Key</div>
+    <input type="password" class="api-input" id="gemini-key" placeholder="AIzaSy..." />
+    <p class="api-note">Free key: <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>
+  </div>
+  <div id="openrouter-key-section" style="display:none">
+    <div class="api-label">OpenRouter API Key</div>
+    <input type="password" class="api-input" id="openrouter-key" placeholder="sk-or-v1-..." />
+    <p class="api-note">Free key: <a href="https://openrouter.ai" target="_blank">openrouter.ai</a> (free models with :free suffix)</p>
+  </div>
+  <div class="active-indicator" id="active-indicator">✓ Active: Groq — agar rate limit lage, upar se kisi aur provider pe switch karo</div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('content')">✍️ Content</button>
+    <button class="tab" onclick="switchTab('video')">🎬 Video Script</button>
+    <button class="tab" onclick="switchTab('support')">💬 Support</button>
+    <button class="tab" onclick="switchTab('code')">💻 Code</button>
+  </div>
+
+  <!-- CONTENT PIPELINE -->
+  <div class="pipeline active" id="tab-content">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">Content Creation</div>
+      <div class="flow">
+        <div class="agent idle" id="ca-planner"><div class="dot"></div>Planner</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="ca-writer"><div class="dot"></div>Writer</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="ca-editor"><div class="dot"></div>Editor</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="ca-validator"><div class="dot"></div>Validator</div>
+      </div>
+      <div class="input-label">Topic</div>
+      <textarea id="content-input" placeholder="e.g. Benefits of daily meditation"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="content-run" onclick="runContent()">▶ Run pipeline</button>
+        <span class="status" id="content-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="content-outputs"></div>
+  </div>
+
+  <!-- VIDEO SCRIPT PIPELINE -->
+  <div class="pipeline" id="tab-video">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">🎬 Video Script Generator</div>
+      <div class="flow">
+        <div class="agent idle" id="va-story"><div class="dot"></div>Story Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="va-scene"><div class="dot"></div>Scene Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="va-dialogue"><div class="dot"></div>Dialogue Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="va-prompt"><div class="dot"></div>AI Prompt Agent</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="va-image"><div class="dot"></div>Image Agent</div>
+      </div>
+      <div class="input-label">Video idea likhoo</div>
+      <textarea id="video-input" placeholder="e.g. 2 marketing persons 3D cartoon video about launching a new product"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="video-run" onclick="runVideo()">▶ Run pipeline</button>
+        <span class="status" id="video-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="video-outputs"></div>
+  </div>
+
+  <!-- SUPPORT PIPELINE -->
+  <div class="pipeline" id="tab-support">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">Customer Support</div>
+      <div class="flow">
+        <div class="agent idle" id="sa-classifier"><div class="dot"></div>Classifier</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sa-responder"><div class="dot"></div>Responder</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sa-escalation"><div class="dot"></div>Escalation</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="sa-finalizer"><div class="dot"></div>Finalizer</div>
+      </div>
+      <div class="input-label">Customer message</div>
+      <textarea id="support-input" placeholder="e.g. My order hasn't arrived in 3 weeks, I want a refund"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="support-run" onclick="runSupport()">▶ Run pipeline</button>
+        <span class="status" id="support-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="support-outputs"></div>
+  </div>
+
+  <!-- CODE PIPELINE -->
+  <div class="pipeline" id="tab-code">
+    <div class="card">
+      <div class="card-label">Pipeline</div>
+      <div class="card-title">Software Development</div>
+      <div class="flow">
+        <div class="agent idle" id="dev-architect"><div class="dot"></div>Architect</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="dev-coder"><div class="dot"></div>Coder</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="dev-reviewer"><div class="dot"></div>Reviewer</div>
+        <div class="arrow">→</div>
+        <div class="agent idle" id="dev-tester"><div class="dot"></div>Tester</div>
+      </div>
+      <div class="input-label">Feature request</div>
+      <textarea id="code-input" placeholder="e.g. Function to validate email addresses with regex"></textarea>
+      <div class="btn-row">
+        <button class="btn primary" id="code-run" onclick="runCode()">▶ Run pipeline</button>
+        <span class="status" id="code-status"></span>
+      </div>
+    </div>
+    <div class="outputs" id="code-outputs"></div>
+  </div>
+</div>
+
+<div class="footer">
+  Powered by <a href="https://groq.com" target="_blank">Groq</a> + <a href="https://aistudio.google.com" target="_blank">Gemini</a> + <a href="https://openrouter.ai" target="_blank">OpenRouter</a> (Free) · Multi-Agent AI System
+</div>
+
+<script>
+const GROQ_API = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
+const GEMINI_MODEL = 'gemini-1.5-flash';
+
+let currentProvider = 'groq';
+let blockCounter = 0; // unique id generator for each output block
+
+function setProvider(p){
+  currentProvider = p;
+  document.getElementById('provider-groq').classList.toggle('active', p==='groq');
+  document.getElementById('provider-gemini').classList.toggle('active', p==='gemini');
+  document.getElementById('provider-openrouter').classList.toggle('active', p==='openrouter');
+  document.getElementById('groq-key-section').style.display = p==='groq' ? 'block':'none';
+  document.getElementById('gemini-key-section').style.display = p==='gemini' ? 'block':'none';
+  document.getElementById('openrouter-key-section').style.display = p==='openrouter' ? 'block':'none';
+  const labels = { groq:'Groq', gemini:'Gemini', openrouter:'OpenRouter' };
+  document.getElementById('active-indicator').textContent = `✓ Active: ${labels[p]} — agar rate limit lage, upar se kisi aur provider pe switch karo`;
+}
+
+function getKey(){
+  if(currentProvider==='groq'){
+    const k = document.getElementById('groq-key').value.trim();
+    if(!k){ alert('Pehle Groq API key daalo!'); return null; }
+    return k;
+  } else if(currentProvider==='gemini'){
+    const k = document.getElementById('gemini-key').value.trim();
+    if(!k){ alert('Pehle Gemini API key daalo!'); return null; }
+    return k;
+  } else {
+    const k = document.getElementById('openrouter-key').value.trim();
+    if(!k){ alert('Pehle OpenRouter API key daalo!'); return null; }
+    return k;
+  }
+}
+
+function switchTab(name){
+  const names = ['content','video','support','code'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
+  document.querySelectorAll('.pipeline').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function setAgent(id, state){
+  const el = document.getElementById(id); if(!el) return;
+  el.className = 'agent '+state;
+  const dot = el.querySelector('.dot');
+  if(dot) dot.className = 'dot'+(state==='running'?' spin':'');
+}
+function resetAgents(...ids){ ids.forEach(id => setAgent(id,'idle')); }
+function setStatus(id, msg){ const el=document.getElementById(id); if(el) el.textContent=msg; }
+function clearOutputs(id){ const el=document.getElementById(id); if(el) el.innerHTML=''; }
+
+function escHtml(t){ return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/*
+  addOutput now includes a regenerate bar under every block:
+  - 👍 / 👎 like buttons (cosmetic feedback, 👎 auto-focuses the notes field)
+  - a notes input ("isme yeh change karo...")
+  - a Regenerate button that re-calls the SAME agent's system prompt,
+    but appends the user's notes plus the previous output as context so the
+    agent revises instead of starting from scratch.
+  regenFn is an async function(notes) => newText that the caller defines per-agent.
+*/
+function addOutput(containerId, label, colorClass, text, regenFn){
+  const c = document.getElementById(containerId); if(!c) return;
+  blockCounter++;
+  const blockId = 'block-'+blockCounter;
+  const b = document.createElement('div');
+  b.className = 'output-block';
+  b.id = blockId;
+  b.innerHTML = `
+    <div class="output-header ${colorClass}">
+      <span>${label}</span>
+    </div>
+    <div class="output-body" id="${blockId}-body">${escHtml(text)}</div>
+    ${regenFn ? `
+    <div class="regen-bar">
+      <div class="like-row">
+        <button class="icon-btn" id="${blockId}-like" onclick="markLike('${blockId}',true)">👍</button>
+        <button class="icon-btn" id="${blockId}-dislike" onclick="markLike('${blockId}',false)">👎</button>
+      </div>
+      <input type="text" class="regen-notes" id="${blockId}-notes" placeholder="Pasand nahi aaya? Yahan likho kya badalna hai..." />
+      <button class="btn secondary small" id="${blockId}-regen" onclick="regenerateBlock('${blockId}')">↻ Regenerate</button>
+    </div>` : ''}
+  `;
+  c.appendChild(b);
+  if(regenFn) regenStore[blockId] = { fn: regenFn, label, colorClass };
+}
+
+const regenStore = {};
+
+function markLike(blockId, liked){
+  const likeBtn = document.getElementById(blockId+'-like');
+  const dislikeBtn = document.getElementById(blockId+'-dislike');
+  if(liked){
+    likeBtn.classList.add('liked'); dislikeBtn.classList.remove('liked');
+  } else {
+    dislikeBtn.classList.add('liked'); likeBtn.classList.remove('liked');
+    const notesInput = document.getElementById(blockId+'-notes');
+    if(notesInput) notesInput.focus();
+  }
+}
+
+async function regenerateBlock(blockId){
+  const entry = regenStore[blockId];
+  if(!entry) return;
+  const notesInput = document.getElementById(blockId+'-notes');
+  const notes = notesInput ? notesInput.value.trim() : '';
+  const regenBtn = document.getElementById(blockId+'-regen');
+  const bodyEl = document.getElementById(blockId+'-body');
+  regenBtn.disabled = true;
+  const oldText = regenBtn.textContent;
+  regenBtn.textContent = '⏳ Regenerating…';
+  try{
+    const newText = await entry.fn(notes);
+    bodyEl.textContent = newText;
+    if(notesInput) notesInput.value = '';
+  }catch(e){
+    bodyEl.textContent = '❌ Error: '+e.message+' — dusra provider try karo upar se switch karke';
+  }
+  regenBtn.disabled = false;
+  regenBtn.textContent = oldText;
+}
+
+function addSceneImages(containerId, prompts){
+  const c = document.getElementById(containerId); if(!c) return;
+  const matches = prompts.split(/SCENE\s*\d+\s*PROMPT\s*:/i).filter(s => s.trim().length > 10);
+  const scenePrompts = matches.length ? matches : [prompts];
+  const wrap = document.createElement('div');
+  wrap.className = 'output-block';
+  wrap.innerHTML = `<div class="output-header purple"><span>🖼️ Image Agent — Scene Visuals (${scenePrompts.length})</span></div>`;
+  const grid = document.createElement('div');
+  grid.className = 'scene-images';
+  scenePrompts.slice(0,6).forEach((p, i) => {
+    const cleanPrompt = p.replace(/\n/g,' ').trim().substring(0,180);
+    const encoded = encodeURIComponent(cleanPrompt);
+    const seed = Math.floor(Math.random()*100000);
+    const card = document.createElement('div');
+    card.className = 'scene-img-card';
+    card.innerHTML = `
+      <img src="https://image.pollinations.ai/prompt/${encoded}?width=300&height=300&seed=${seed}&nologo=true" alt="Scene ${i+1}" loading="lazy" />
+      <div class="scene-img-label">Scene ${i+1}</div>
+    `;
+    grid.appendChild(card);
+  });
+  wrap.appendChild(grid);
+  c.appendChild(wrap);
+}
+
+function addVideoLinks(containerId){
+  const c = document.getElementById(containerId); if(!c) return;
+  const d = document.createElement('div');
+  d.style.cssText = 'padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)';
+  d.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500">🎬 Ab yeh prompt in tools mein paste karo — FREE video banega:</div>
+    <a href="https://klingai.com" target="_blank" class="kling-btn">🎬 Kling AI (Free)</a>
+    <a href="https://pika.art" target="_blank" class="pika-btn">✨ Pika Art (Free)</a>
+    <a href="https://runwayml.com" target="_blank" style="display:inline-block;margin-top:6px;margin-left:8px;padding:8px 16px;background:#0d9488;color:#fff;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none">🚀 Runway ML</a>
+  `;
+  c.appendChild(d);
+}
+
+function addRetryNote(containerId, msg){
+  const c = document.getElementById(containerId); if(!c) return;
+  const d = document.createElement('div');
+  d.className = 'retry-note';
+  d.textContent = '↻ Feedback loop: '+msg;
+  c.appendChild(d);
+}
+
+async function callGroq(apiKey, systemPrompt, userMessage){
+  const r = await fetch(GROQ_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+apiKey },
+    body: JSON.stringify({
+      model: GROQ_MODEL, max_tokens: 1000,
+      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }]
+    })
+  });
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error?.message || 'Groq error '+r.status);
+  return d.choices[0].message.content;
+}
+
+async function callGemini(apiKey, systemPrompt, userMessage){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: systemPrompt + '\n\n' + userMessage }] }],
+      generationConfig: { maxOutputTokens: 1000 }
+    })
+  });
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error?.message || 'Gemini error '+r.status);
+  return d.candidates[0].content.parts[0].text;
+}
+
+async function callOpenRouter(apiKey, systemPrompt, userMessage){
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer '+apiKey,
+      'HTTP-Referer': 'https://localhost',
+      'X-Title': 'Multi-Agent AI System'
+    },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-3.1-8b-instruct:free',
+      max_tokens: 1000,
+      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }]
+    })
+  });
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error?.message || 'OpenRouter error '+r.status);
+  return d.choices[0].message.content;
+}
+
+async function callAI(systemPrompt, userMessage){
+  const key = getKey();
+  if(!key) throw new Error('API key missing');
+  if(currentProvider==='groq') return await callGroq(key, systemPrompt, userMessage);
+  if(currentProvider==='gemini') return await callGemini(key, systemPrompt, userMessage);
+  return await callOpenRouter(key, systemPrompt, userMessage);
+}
+
+// Helper: builds a regeneration-aware user message.
+// If notes are provided, instructs the agent to revise the previous output per the notes.
+// If no notes, just asks for a fresh alternative version.
+function buildRegenMessage(originalUserMessage, previousOutput, notes){
+  if(notes){
+    return originalUserMessage + `\n\nPrevious output:\n${previousOutput}\n\nThe user did not like this and wants changes. Specific feedback: "${notes}"\nRegenerate a new version that addresses this feedback.`;
+  }
+  return originalUserMessage + `\n\nPrevious output:\n${previousOutput}\n\nThe user wants a different alternative version (not a copy). Generate a fresh take.`;
+}
+
+// ── CONTENT PIPELINE ──
+async function runContent(){
+  if(!getKey()) return;
+  const input = document.getElementById('content-input').value.trim();
+  if(!input){ alert('Topic likhoo pehle!'); return; }
+  const btn = document.getElementById('content-run');
+  btn.disabled=true; clearOutputs('content-outputs');
+  resetAgents('ca-planner','ca-writer','ca-editor','ca-validator');
+  try{
+    const plannerSys = 'You are a content planning agent. Create a clear article outline: title, target audience, 3-5 section headings with one-line descriptions. Be concise.';
+    setAgent('ca-planner','running'); setStatus('content-status','Planning…');
+    const outline = await callAI(plannerSys, 'Topic: '+input);
+    setAgent('ca-planner','done');
+    addOutput('content-outputs','📋 Planner — Outline','blue', outline,
+      async (notes) => callAI(plannerSys, buildRegenMessage('Topic: '+input, outline, notes)));
+
+    const writerSys = 'You are a content writing agent. Write a concise engaging article (300-400 words) based on the outline.';
+    setAgent('ca-writer','running'); setStatus('content-status','Writing draft…');
+    const draft = await callAI(writerSys, 'Outline:\n'+outline);
+    setAgent('ca-writer','done');
+    addOutput('content-outputs','✍️ Writer — Draft','purple', draft,
+      async (notes) => callAI(writerSys, buildRegenMessage('Outline:\n'+outline, draft, notes)));
+
+    const editorSys = 'You are an editing agent. Review for clarity and flow. Output: 1) ISSUES FOUND 2) REVISED DRAFT.';
+    setAgent('ca-editor','running'); setStatus('content-status','Editing…');
+    const edited = await callAI(editorSys, 'Draft:\n'+draft);
+    setAgent('ca-editor','done');
+    addOutput('content-outputs','✏️ Editor — Revised','amber', edited,
+      async (notes) => callAI(editorSys, buildRegenMessage('Draft:\n'+draft, edited, notes)));
+
+    const validatorSys = 'You are a quality validator. Score: Clarity (1-10), Engagement (1-10). Give PASS or FAIL verdict.';
+    setAgent('ca-validator','running'); setStatus('content-status','Validating…');
+    const validation = await callAI(validatorSys, 'Content:\n'+edited);
+    const passed = !validation.toLowerCase().includes('fail');
+    setAgent('ca-validator', passed?'done':'warning');
+    addOutput('content-outputs', passed?'✅ Validator — PASSED':'⚠️ Needs Revision', passed?'green':'red', validation,
+      async (notes) => callAI(validatorSys, buildRegenMessage('Content:\n'+edited, validation, notes)));
+    if(!passed) addRetryNote('content-outputs','Editor would re-process based on feedback.');
+    setStatus('content-status', passed?'✅ Complete':'⚠️ Review needed');
+  }catch(e){
+    setStatus('content-status','❌ '+e.message);
+    addOutput('content-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+
+// ── VIDEO SCRIPT PIPELINE ──
+async function runVideo(){
+  if(!getKey()) return;
+  const input = document.getElementById('video-input').value.trim();
+  if(!input){ alert('Video idea likhoo!'); return; }
+  const btn = document.getElementById('video-run');
+  btn.disabled=true; clearOutputs('video-outputs');
+  resetAgents('va-story','va-scene','va-dialogue','va-prompt','va-image');
+  try{
+    const storySys = 'You are a video story agent. Create a short engaging story concept: characters with personalities, setting, core message, tone. Keep it concise.';
+    setAgent('va-story','running'); setStatus('video-status','Story bana raha hai…');
+    const story = await callAI(storySys, 'Video idea: '+input);
+    setAgent('va-story','done');
+    addOutput('video-outputs','📖 Story Agent — Story Concept','blue', story,
+      async (notes) => callAI(storySys, buildRegenMessage('Video idea: '+input, story, notes)));
+
+    const sceneSys = 'You are a scene breakdown agent. Break into 4-5 scenes: SCENE NUMBER, LOCATION, ACTION, CAMERA ANGLE, DURATION, VISUAL STYLE.';
+    setAgent('va-scene','running'); setStatus('video-status','Scenes bana raha hai…');
+    const scenes = await callAI(sceneSys, 'Story:\n'+story);
+    setAgent('va-scene','done');
+    addOutput('video-outputs','🎬 Scene Agent — Scene Breakdown','purple', scenes,
+      async (notes) => callAI(sceneSys, buildRegenMessage('Story:\n'+story, scenes, notes)));
+
+    const dialogueSys = 'You are a dialogue writing agent. Write natural dialogue for each scene with character names. Conversational tone.';
+    setAgent('va-dialogue','running'); setStatus('video-status','Dialogue likh raha hai…');
+    const dialogue = await callAI(dialogueSys, 'Story:\n'+story+'\n\nScenes:\n'+scenes);
+    setAgent('va-dialogue','done');
+    addOutput('video-outputs','💬 Dialogue Agent — Script','amber', dialogue,
+      async (notes) => callAI(dialogueSys, buildRegenMessage('Story:\n'+story+'\n\nScenes:\n'+scenes, dialogue, notes)));
+
+    const promptSys = 'You are an AI video prompt agent. Create detailed prompts for Kling AI/Pika Art: visual style (3D cartoon), characters, background, lighting, camera movement, mood. Format as "SCENE X PROMPT: [prompt]"';
+    setAgent('va-prompt','running'); setStatus('video-status','AI prompts bana raha hai…');
+    const aiPrompt = await callAI(promptSys, 'Story:\n'+story+'\n\nScenes:\n'+scenes);
+    setAgent('va-prompt','done');
+    addOutput('video-outputs','🎯 AI Prompt Agent — Video Prompts','green', aiPrompt,
+      async (notes) => callAI(promptSys, buildRegenMessage('Story:\n'+story+'\n\nScenes:\n'+scenes, aiPrompt, notes)));
+
+    setAgent('va-image','running'); setStatus('video-status','Scene images bana raha hai…');
+    addSceneImages('video-outputs', aiPrompt);
+    setAgent('va-image','done');
+
+    addVideoLinks('video-outputs');
+    setStatus('video-status','✅ Script + images ready! Regenerate button se notes ke saath badal bhi sakte ho');
+  }catch(e){
+    setStatus('video-status','❌ '+e.message);
+    addOutput('video-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+
+// ── SUPPORT PIPELINE ──
+async function runSupport(){
+  if(!getKey()) return;
+  const input = document.getElementById('support-input').value.trim();
+  if(!input){ alert('Customer message likhoo!'); return; }
+  const btn = document.getElementById('support-run');
+  btn.disabled=true; clearOutputs('support-outputs');
+  resetAgents('sa-classifier','sa-responder','sa-escalation','sa-finalizer');
+  try{
+    const classifierSys = 'You are a support classifier. Output: CATEGORY, PRIORITY (low/medium/high/critical), SENTIMENT, INTENT, SUMMARY.';
+    setAgent('sa-classifier','running'); setStatus('support-status','Classifying…');
+    const classification = await callAI(classifierSys, 'Customer message: '+input);
+    setAgent('sa-classifier','done');
+    addOutput('support-outputs','🏷️ Classifier — Analysis','blue', classification,
+      async (notes) => callAI(classifierSys, buildRegenMessage('Customer message: '+input, classification, notes)));
+
+    const responderSys = 'You are a customer support agent. Write a professional, empathetic response.';
+    setAgent('sa-responder','running'); setStatus('support-status','Response draft kar raha hai…');
+    const response = await callAI(responderSys, 'Classification:\n'+classification+'\n\nMessage: '+input);
+    setAgent('sa-responder','done');
+    addOutput('support-outputs','💬 Responder — Draft','purple', response,
+      async (notes) => callAI(responderSys, buildRegenMessage('Classification:\n'+classification+'\n\nMessage: '+input, response, notes)));
+
+    const escalationSys = 'You are an escalation agent. Decide ESCALATE: YES or NO. If YES, name the team.';
+    setAgent('sa-escalation','running'); setStatus('support-status','Escalation check…');
+    const escalation = await callAI(escalationSys, 'Classification:\n'+classification);
+    const needsEsc = escalation.toLowerCase().includes('yes');
+    setAgent('sa-escalation', needsEsc?'warning':'done');
+    addOutput('support-outputs', needsEsc?'⚠️ Escalation needed':'✅ No escalation', needsEsc?'amber':'green', escalation,
+      async (notes) => callAI(escalationSys, buildRegenMessage('Classification:\n'+classification, escalation, notes)));
+
+    const finalizerSys = 'You are a finalizer. Polish the response, add ticket ref [TKT-XXXX], add next steps. Output only final message.';
+    setAgent('sa-finalizer','running'); setStatus('support-status','Finalizing…');
+    const final = await callAI(finalizerSys, 'Draft:\n'+response);
+    setAgent('sa-finalizer','done');
+    addOutput('support-outputs','📨 Finalizer — Final Response','green', final,
+      async (notes) => callAI(finalizerSys, buildRegenMessage('Draft:\n'+response, final, notes)));
+    setStatus('support-status','✅ Response ready');
+  }catch(e){
+    setStatus('support-status','❌ '+e.message);
+    addOutput('support-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+
+// ── CODE PIPELINE ──
+async function runCode(){
+  if(!getKey()) return;
+  const input = document.getElementById('code-input').value.trim();
+  if(!input){ alert('Feature request likhoo!'); return; }
+  const btn = document.getElementById('code-run');
+  btn.disabled=true; clearOutputs('code-outputs');
+  resetAgents('dev-architect','dev-coder','dev-reviewer','dev-tester');
+  try{
+    const archSys = 'You are a software architect. Define: APPROACH, FUNCTION SIGNATURE, EDGE CASES, CONSTRAINTS.';
+    setAgent('dev-architect','running'); setStatus('code-status','Designing…');
+    const arch = await callAI(archSys, 'Feature: '+input);
+    setAgent('dev-architect','done');
+    addOutput('code-outputs','🏗️ Architect — Design','blue', arch,
+      async (notes) => callAI(archSys, buildRegenMessage('Feature: '+input, arch, notes)));
+
+    const coderSys = 'You are a coder. Implement the feature with clean code and inline comments. Output only the code.';
+    setAgent('dev-coder','running'); setStatus('code-status','Coding…');
+    const code = await callAI(coderSys, 'Architecture:\n'+arch+'\n\nFeature: '+input);
+    setAgent('dev-coder','done');
+    addOutput('code-outputs','💻 Coder — Implementation','purple', code,
+      async (notes) => callAI(coderSys, buildRegenMessage('Architecture:\n'+arch+'\n\nFeature: '+input, code, notes)));
+
+    const reviewerSys = 'You are a code reviewer. Check correctness, security, performance. Output ISSUES and VERDICT: APPROVE or REQUEST_CHANGES.';
+    setAgent('dev-reviewer','running'); setStatus('code-status','Reviewing…');
+    const review = await callAI(reviewerSys, 'Code:\n'+code);
+    const approved = !review.toLowerCase().includes('request_changes');
+    setAgent('dev-reviewer', approved?'done':'warning');
+    addOutput('code-outputs', approved?'✅ Reviewer — Approved':'⚠️ Changes requested', approved?'green':'amber', review,
+      async (notes) => callAI(reviewerSys, buildRegenMessage('Code:\n'+code, review, notes)));
+    if(!approved) addRetryNote('code-outputs','Coder would regenerate based on review feedback.');
+
+    const testerSys = 'You are a QA tester. Write unit tests: happy path, edge cases, error cases. Output clean test code.';
+    setAgent('dev-tester','running'); setStatus('code-status','Writing tests…');
+    const tests = await callAI(testerSys, 'Code:\n'+code);
+    setAgent('dev-tester','done');
+    addOutput('code-outputs','🧪 Tester — Test Suite','green', tests,
+      async (notes) => callAI(testerSys, buildRegenMessage('Code:\n'+code, tests, notes)));
+    setStatus('code-status','✅ Complete');
+  }catch(e){
+    setStatus('code-status','❌ '+e.message);
+    addOutput('code-outputs','❌ Error','red', e.message+' — dusra provider try karo upar se switch karke');
+  }
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
